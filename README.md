@@ -12,6 +12,10 @@ scratch. This also gave me a chance to play with the ESP8266 Arduino integration
 
 I have created my own simple JSON format, I like the KISS approach !
 
+Included is a driver for weeWX, TuxSoft3DP to install it download the zip file and use the command
+
+`wee_extensions --install tuxsoft3dp.zip`
+
 I have choosen to also implement Weatherflow V40 protocol since that should provide ready to use
 software solutions, in particular I am investigating weeWx.
 
@@ -19,7 +23,7 @@ software solutions, in particular I am investigating weeWx.
 
 ![weeWx](http://www.weewx.com/)
 
-[!Weatherflow Driver for weeWx by Arthur Emerson](https://github.com/captain-coredump/weatherflow-udp)
+![Weatherflow Driver for weeWx by Arthur Emerson](https://github.com/captain-coredump/weatherflow-udp)
 To use this driver D2 must be pulled LOW 
 
 ## Hardware:
@@ -95,3 +99,16 @@ To use this driver D2 must be pulled LOW
 ## Calibration
 
  To be done
+
+## Misc Notes
+
+ It is *very important* not to mount the rain gauge to close to the weather vane as the magnet in the tipper
+ will affect the magnometer used by the weather vane. By the same token using ceramic bearings and brass nuts
+ and bolts are the preferred materials.
+ 
+ Removing those cheap and nasty steel "pins" in the sensors and replacing them with good quality copper wires
+ might also be a benefit.
+ 
+ Most importantly this is a fun project for me, its my first experience in weather stations of any kind and
+ as such no warranties of any sort are made for anything.. nada but that said I hope it proves reliable and useful.
+ 
