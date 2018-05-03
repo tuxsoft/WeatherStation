@@ -10,12 +10,17 @@ Dan Bemowski's https://www.thingiverse.com/thing:2757369
 This got me inspired, and I used his mounting idea and designed a new weather station from
 scratch. This also gave me a chance to play with the ESP8266 Arduino integration, I like it !
 
-I have choosen to implement Weatherflow V40 protocol since that should provide ready to use
+I have created my own simple JSON format, I like the KISS approach !
+
+I have choosen to also implement Weatherflow V40 protocol since that should provide ready to use
 software solutions, in particular I am investigating weeWx.
 
 ![WeatherFlow](https://weatherflow.github.io/SmartWeather/api/udp/v40/)
+
 ![weeWx](http://www.weewx.com/)
-[!Driver for weeWx](https://github.com/captain-coredump/weatherflow-udp)
+
+[!Weatherflow Driver for weeWx by Arthur Emerson](https://github.com/captain-coredump/weatherflow-udp)
+To use this driver D2 must be pulled LOW 
 
 ## Hardware:
 
