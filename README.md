@@ -1,6 +1,6 @@
 # 3D Printed Weather Station
 
-A WeMoss based 3D printed WiFi weather station
+A WeMos based 3D printed WiFi weather station
 
 ![TuxSoft Weather Station](https://github.com/tuxsoft/WeatherStation/images/station.png)
 
@@ -28,6 +28,7 @@ To use this driver D2 must be pulled LOW
 
 ## Hardware:
 
+ * 3 x Stainless M3x6 self tapping screws for rain gauge
  * 1 x Stainless or Brass M5 30mm bolt
  * 1 x Brass M5 50mm bolt
  * 2 x M5 Nuts and washers to match above
@@ -45,6 +46,11 @@ To use this driver D2 must be pulled LOW
  * 1 x 100K resistor (See note A)
  * 1 x 18650 battery
  * 1 x Small DIY solar panel https://www.aliexpress.com/item/Solar-Panel-5V-6V-12V-Mini-Solar-System-DIY-For-Battery-Cell-Phone-Chargers-Portable-Solar/32823762479.html
+ * 1M 15mm copper pipe
+ * 1 x 90Deg 15mm copper bend
+ * 5 x 15mm copper T junction
+ * 3 x stainless hose clamps to fit 15mm pipe
+ * Some method to mount the 15mm tube to your desired location.
 
  I chose the 12V 1.5W and plan to use a buck if needed, it has not arrived yet so can only tell
  once Chinese product arrives what you actually get :)
@@ -78,7 +84,7 @@ To use this driver D2 must be pulled LOW
 
 ## Note A
 
- I have not yet received the WeMoss with battery, but from what I can tell there is already a 220K/100K divider
+ I have not yet received the WeMos with battery, but from what I can tell there is already a 220K/100K divider
  built into the board for the analogue input. Like all things from China this must be verified before assumtion.
 
 

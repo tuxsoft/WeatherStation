@@ -627,7 +627,110 @@ module rain_bucket ()
 	mirror([1,0,0]) rain_bucket_half ();
 }
 
+//======================= WeMoss Box=============================
+// Dont have the hardware yet so this is an estimation from a photo
+module wemos_box ()
+{
+	difference ()
+	{
+		union ()
+		{
+			translate ([1,1,0]) rcube ([96+20, 28,25]);
+			rcube ([98+20,30,23]);
+		}
+		translate ([2,2,2]) rcube ([94+20, 26,25]);
+		wemos_box_gcuts ();
+		
+		// Hole for wire T-Junction
+		translate ([98+8,15,-0.1]) cylinder (d=16, h=5); 
+	}
+	
+	difference ()
+	{
+		union ()
+		{
+			translate ([4.5,4.5,0]) cylinder (d=5,h=22);
+			translate ([93.5,4.5,0]) cylinder (d=5,h=22);
+			translate ([4.5,25.5,0]) cylinder (d=5,h=22);
+			translate ([93.5,25.5,0]) cylinder (d=5,h=22);
+		}
+		wemos_box_gcuts ();
+	}
+	
+	// The lid
+	translate ([0,40,0])
+	{
+		difference ()
+		{
+			rcube ([98+20,30,6]);
+			
+			translate ([2,2,2]) rcube ([94+20, 26,8]);
+			translate ([1,1,4]) rcube ([96+20, 28,8]);
+			
+			wemos_box_gcuts ();
+		}
+		
+		difference ()
+		{
+			union ()
+			{
+				translate ([4.5,4.5,0]) cylinder (d=5,h=5.4);
+				translate ([93.5,4.5,0]) cylinder (d=5,h=5.4);
+				translate ([4.5,25.5,0]) cylinder (d=5,h=5.4);
+				translate ([93.5,25.5,0]) cylinder (d=5,h=5.4);
+			}
+			wemos_box_gcuts ();
+		}
+	}
+}
 
+module wemos_pole_clamps ()
+{
+	for  (o = [0,12,24,36])
+		translate ([o,0,0])difference ()
+	{
+		rcube ([10,30,8]);
+			
+		rotate ([0,90,0]) translate ([-10,15,-1]) cylinder (d=16, h= 12);
+		wemos_box_gcuts ();
+	}
+}
+
+module wemos_box_gcuts ()
+{
+	translate ([4.5,4.5,-0.1]) cylinder (d=3.1,h=30);
+	translate ([93.5,4.5,-0.1]) cylinder (d=3.1,h=30);
+	translate ([4.5,25.5,-0.1]) cylinder (d=3.1,h=30);
+	translate ([93.5,25.5,-0.1]) cylinder (d=3.1,h=30);
+}
+
+//======================= Solar Panel Box =============================
+// Dont have the hardware yet so this is an estimation from a photo
+module solar_box ()
+{
+	difference ()
+	{
+		rcube ([135, 91, 6]);
+		
+		translate ([12, 5, 1]) cube ([111, 81,6]);
+		translate ([10,3,4]) cube ([115, 85,6]);
+		
+		// Hole for wire T-Junction
+		translate ([100,91/2,-0.1]) cylinder (d=16, h=5);
+		
+		translate ([4.5,91/2-21/2,-0.1]) cylinder (d=3.1,h=30);
+		translate ([4.5,91/2+21/2,-0.1]) cylinder (d=3.1,h=30);
+		
+		translate ([135-4.5,91/2-21/2,-0.1]) cylinder (d=3.1,h=30);
+		translate ([135-4.5,91/2+21/2,-0.1]) cylinder (d=3.1,h=30);
+	}
+}
+
+solar_box (); // Uses same clamps as wemos
+translate ([0,-35,0]) wemos_pole_clamps ();
+
+//wemos_box();
+//translate ([0,-35,0]) wemos_pole_clamps ();
 //magnometer ();
 //anemometer_encoder ();
 //anemometer1 ();
@@ -643,7 +746,7 @@ module rain_bucket ()
 //bottom ();
 
 //vane ();
-vane_nut_cap ();
+//vane_nut_cap ();
 //vane_cap ();
 //vane_cone ();
 //vane_beams ();

@@ -278,7 +278,7 @@ void loop()
 		}
 		if (digitalRead (D2) == HIGH)
 		{
-			txTux (ltmp, /*bmp.readTemperature ()*/,		// TODO: put back once sensor arrives
+			txTux (ltmp, /*bmp.readTemperature (),*/		// TODO: put back once sensor arrives
 				   bmp.readPressure (),
 				   windSpeed (windAvg),
 				   angle,

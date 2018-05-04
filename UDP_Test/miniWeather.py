@@ -163,7 +163,7 @@ if __name__ == "__main__":
 			compass.setAngle (pkt["windDir"])
 			deg = u"\u00b0"
 			speed.setText (QString ("Wind: %1 kph (Max %2)").arg(pkt["windSpeed"]*3.6).arg(pkt["windGust"]*3.6))
-			temp.setText (QString ("Temp: %1%2C   Rain: %3 mm").arg(pkt["outTemp"]*3.6).arg(deg).arg(pkt["rain"]))
+			temp.setText (QString ("Temp: %1%2C   Rain: %3 mm").arg(pkt["outTemp"]).arg(deg).arg(pkt["rain"]))
 			app.processEvents()
 
 
