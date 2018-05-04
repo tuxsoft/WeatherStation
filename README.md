@@ -98,7 +98,12 @@ To use this driver D2 must be pulled LOW
 
 ## Calibration
 
- To be done
+ The rain gauge radius is 34mm so its area is 0.03637932 M2, this gives 36.38 ml as the volume
+ that equates to 1mm of rain. I measure my tipper and it takes 1.9mm to tip thus each tip is
+  0.05227 mm of rain, 0.52 therfor is my choosen value. Field testing will confirm if its close enough.
+
+ The small size of the gauge reduces its accuracy but I think it is good enough to measure trends, also
+ I imagine the high winds we often get affect a tipper as well.
 
 ## Misc Notes
 

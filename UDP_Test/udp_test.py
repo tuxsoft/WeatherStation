@@ -45,6 +45,7 @@ while 1:
 		pkt = json.loads (data)
 		print "outTemp", pkt["outTemp"];
 		print "windSpeed", pkt["windSpeed"];
+		print "windDir", pkt["windDir"];
 		print "windGust", pkt["windGust"];
 
 

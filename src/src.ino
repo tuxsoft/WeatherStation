@@ -35,7 +35,12 @@
   more software support will be available. Looking at weeWx right now. One thing they lack
   is internal temp, I will add some custom messages to get different status from the station
   for my own use, its pretty simple when using JSON
+
+  Rain: .. r=34mm Area = 0.03637932 M2  so 36.38ml = 1mm of rain 
+           Tipper takes 1.9ml to tip so each tip is 0.052mm
 */
+
+#define TIP_VOL	0.052
 
 #include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
@@ -65,7 +70,6 @@ int celcius = 20;
 int barometer = 771;
 
 #include "ssid.h"
-unsigned int localport = 50222;
 WiFiUDP Udp;
 
 
@@ -274,7 +278,7 @@ void loop()
 		}
 		if (digitalRead (D2) == HIGH)
 		{
-			txTux (bmp.readTemperature (),
+			txTux (ltmp, /*bmp.readTemperature ()*/,		// TODO: put back once sensor arrives
 				   bmp.readPressure (),
 				   windSpeed (windAvg),
 				   angle,
@@ -282,7 +286,7 @@ void loop()
 				   txWindGustDir,
 				   humidity,
 				   uvIndex,
-				   rainTipper*0.2);
+				   rainTipper * TIP_VOL);
 		}
 
 		txWindGust = 0;
@@ -332,7 +336,8 @@ void loop()
 
 		if (digitalRead (D2) == LOW)
 		{
-			observationSky (rainTipper*0.2, sampleRainTipper *0.2, windSpeed (windLull), windSpeed (windAvg), windSpeed (windGust));
+			observationSky (rainTipper * TIP_VOL, sampleRainTipper * TIP_VOL,
+							windSpeed (windLull), windSpeed (windAvg), windSpeed (windGust));
 		}
 		windGust = 0;
 		windLull = 0;

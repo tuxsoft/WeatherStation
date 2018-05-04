@@ -14,7 +14,7 @@
  Things that are noticably different are from top to bottom, the wind vane
  cap, I overlap for better weather protection, bearing sizes I use ceramic
  608ZZ with inserts, the fit between the top and bottom casings, the anemometer
- environment shield and rain guage are totally different but include the
+ environment shield and rain gauge are totally different but include the
  great pipe mount concept.
 
  We are Metric so I choose 15mm copper pipe since its what I had available
@@ -308,10 +308,24 @@ module magnometer ()
 		cylinder (d=32, h=19);
 
 		translate ([0,0,-0.01])cylinder (d=28.5, h=13);
-		#translate ([-5,-5,15]) cube ([15,13.5, 4.1]);
+		translate ([-5,-5,15]) cube ([15,13.5, 4.1]);
 	}
 }
 
+// ========================= Vane Nut Cap ==============================
+module vane_nut_cap ()
+{
+	difference ()
+	{
+		cylinder (d1=29, d2=10, h=8);
+		translate ([0,0,-0.1])
+		{
+			cylinder (d=9, h=6, $fn=6);
+			cylinder (d=14, h=1.5);
+		}
+	}
+}
+		
 // ========================= Vane Cap ==============================
 module vane_cap ()
 {
@@ -618,7 +632,7 @@ module rain_bucket ()
 //anemometer_encoder ();
 //anemometer1 ();
 //rain_top ();
-rain_bottom();
+//rain_bottom();
 //rain_bottom (); translate([0,0,28.1+8]) rain_top ();
 //rain_bucket ();
 //rain_bottom (); //translate ([0,12,10]) rotate ([0,0,180]) color ("green") rain_bucket ();
@@ -629,6 +643,7 @@ rain_bottom();
 //bottom ();
 
 //vane ();
+vane_nut_cap ();
 //vane_cap ();
 //vane_cone ();
 //vane_beams ();
