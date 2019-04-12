@@ -60,6 +60,7 @@ run *`udp_test.py`*  in the other terminal have the following command primed and
 Next whemn you see a weather packet received immediately send the OTA with netcat, you should then see a
 second packet that confirms OTA was enabled. Now send the update via OTA using the Arduino IDE
 
+You can see this procedure ![on YouTube](https://youtu.be/7__c9c8BN8w)
 
 ## Hardware:
 
@@ -183,4 +184,6 @@ second packet that confirms OTA was enabled. Now send the update via OTA using t
 
  Start by soldering the unslotted ends of the junctions, one to each pipe labeled **A**, **C**, and **F**
 
+ Beh .. look at the images and fabricate the mounts, take care to orientate your solar panel correctly in
+ relation to the weather vane
 
