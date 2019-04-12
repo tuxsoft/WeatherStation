@@ -31,11 +31,8 @@ status = wsock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, socket.in
 
 # setblocking(0) is equiv to settimeout(0.0) which means we poll the socket.
 # But this will raise an error if recv() or send() can't immediately find or send data. 
-#sock.setblocking(0)
-#wsock.setblocking(0)
-# Rather use a timeout to reduce CPU usage
-sock.settimeout (30)
-sock.settimeout (30)
+sock.setblocking(0)
+wsock.setblocking(0)
 
 while 1:
     try:
