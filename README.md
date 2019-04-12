@@ -2,7 +2,7 @@
 
 A WeMos based 3D printed WiFi weather station
 
-[TuxSoft Weather Station](https://github.com/tuxsoft/WeatherStation/images/tux3dpweather.jpg)
+[TuxSoft Weather Station](https://github.com/tuxsoft/WeatherStation/blob/master/images/tux3dpweather.jpg)
 
 You can see this in [action](https://youtu.be/rjHQcb2TLco)
 
@@ -62,7 +62,7 @@ run *`udp_test.py`*  in the other terminal have the following command primed and
 Next when you see a weather packet received immediately send the OTA with netcat, you should then see a
 second packet that confirms OTA was enabled. Now send the update via OTA using the Arduino IDE
 
-You can see this procedure ![on YouTube](https://youtu.be/7__c9c8BN8w)
+You can see this procedure [on YouTube](https://youtu.be/7__c9c8BN8w)
 
 ## Hardware:
 
