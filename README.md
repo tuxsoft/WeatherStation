@@ -6,7 +6,7 @@ A WeMos based 3D printed WiFi weather station
 
 You can see this in [action](https://youtu.be/rjHQcb2TLco)
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/rjHQcb2TLco" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/rjHQcb2TLco" frameborder="0" allowfullscreen></iframe>
 
 I have been meaning to build a weather station for a few years then recently I saw i
 Dan Bemowski's https://www.thingiverse.com/thing:2757369
