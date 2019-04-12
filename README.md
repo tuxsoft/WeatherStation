@@ -186,6 +186,7 @@ You can see this procedure [on YouTube](https://youtu.be/7__c9c8BN8w)
 
  Start by soldering the unslotted ends of the junctions, one to each pipe labeled **A**, **C**, and **F**
 
- Beh .. look at the images and fabricate the mounts, take care to orientate your solar panel correctly in
- relation to the weather vane
+ Beh .. look at the [assembly image](https://github.com/tuxsoft/WeatherStation/blob/master/images/pipe_complete.jpg)
+ and fabricate the mounts, take care to orientate your solar panel correctly in relation to the weather vane
+ both direction and azimuth.
 
