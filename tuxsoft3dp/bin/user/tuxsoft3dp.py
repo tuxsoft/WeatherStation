@@ -22,64 +22,69 @@ HARDWARE_NAME = "TuxSoft3DP"
 DRIVER_NAME = 'TuxSoft3DP'
 
 def loader(config_dict, engine):
-	return TuxSoft3DPDriver(**config_dict[DRIVER_NAME])
+    return TuxSoft3DPDriver(**config_dict[DRIVER_NAME])
 
 def logmsg(level, msg):
-	syslog.syslog(level, 'tuxsoft3dp: %s: %s' %
-				  (threading.currentThread().getName(), msg))
+    syslog.syslog(level, 'tuxsoft3dp: %s: %s' %
+                  (threading.currentThread().getName(), msg))
 
 def logdbg(msg):
-	logmsg(syslog.LOG_DEBUG, msg)
+    logmsg(syslog.LOG_DEBUG, msg)
 
 def loginf(msg):
-	logmsg(syslog.LOG_INFO, msg)
+    logmsg(syslog.LOG_INFO, msg)
 
 def logerr(msg):
-	logmsg(syslog.LOG_ERR, msg)
+    logmsg(syslog.LOG_ERR, msg)
 
 def sendMyLoopPacket (raw):
-	packet = dict()
-	if 'TS3DP' in raw:
-		data = json.loads (raw)
-		# I ignore the station number for now
-		packet = {'dateTime' : time.time(), 'usUnits' : weewx.METRICWX,
-				  'outTemp' : data['outTemp'],
-				  'barometer' : data['barometer'],
-				  'windSpeed' : data['windSpeed'],
-				  'windDir' : data['windDir'],
-				  'windGust' : data['windGust'],
-				  'windGustDir' : data['windGustDir'],
-				  'outHumidity' : data['outHumidity'],
-				  'UV' : data['UV'],
-				  'rain' : data['rain']}
+    packet = dict()
+    if 'TS3DP' in raw:
+        data = json.loads (raw)
+        # I ignore the station number for now
+        packet = {'dateTime' : time.time(), 'usUnits' : weewx.METRICWX,
+                  'outTemp' : data['outTemp'],
+                  'barometer' : data['barometer'],
+                  'windSpeed' : data['windSpeed'],
+                  'windDir' : data['windDir'],
+                  'windGust' : data['windGust'],
+                  'windGustDir' : data['windGustDir'],
+                  'outHumidity' : data['outHumidity'],
+                  'UV' : data['UV'],
+                  'rain' : data['rain']}
 
-	return packet
+    return packet
 
 
 class TuxSoft3DPDriver (weewx.drivers.AbstractDevice):
 
-	def __init__(self, **stn_dict):
-		loginf ('driver version is %s' % DRIVER_VERSION)
-		self.bcast = stn_dict.get('bcast', '0.0.0.0')
-		self.port = int(stn_dict.get('port', 55555))
+    def __init__(self, **stn_dict):
+        loginf ('driver version is %s' % DRIVER_VERSION)
+        self.bcast = stn_dict.get('bcast', '0.0.0.0')
+        self.port = int(stn_dict.get('port', 55555))
 
-	def hardware_name(self):
-		return HARDWARE_NAME
+    def hardware_name(self):
+        return HARDWARE_NAME
 
 
-	def genLoopPackets(self):
-		loginf ('Listenng for packets on port %s' % (self.port))
+    def genLoopPackets(self):
+        loginf ('Listenng for packets on port %s' % (self.port))
 
-		sock = socket.socket (socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-		sock.setsockopt (socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
-		sock.bind ((self.bcast, self.port))
-		sock.settimeout (30)
+        sock = socket.socket (socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+        sock.setsockopt (socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
+        sock.bind ((self.bcast, self.port))
+        sock.settimeout (30)
+#        sock.setblocking(0)
 
-		while True:
-			try:
-				data,addr = sock.recvfrom (1024)
-				rep = sendMyLoopPacket (data)
-				if len (rep) > 2 :
-					yield rep
-			except socket.error as e:
-				logerr ('UDP error' % e)
+        while True:
+            try:
+                data,addr = sock.recvfrom (1024)
+            except socket.error as e:
+#                logerr ('UDP error' % e)
+                pass
+            else:
+                if len(data) > 0 :
+                    loginf (data);
+                    rep = sendMyLoopPacket (data)
+                    if len (rep) > 2 :
+                        yield rep
