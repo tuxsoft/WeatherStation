@@ -4,6 +4,8 @@ A WeMos based 3D printed WiFi weather station
 
 ![TuxSoft Weather Station](https://github.com/tuxsoft/WeatherStation/images/station.png)
 
+You can see this in ![action](https://youtu.be/rjHQcb2TLco)
+
 I have been meaning to build a weather station for a few years then recently I saw i
 Dan Bemowski's https://www.thingiverse.com/thing:2757369
 
@@ -16,7 +18,7 @@ Included is a driver for weeWX, TuxSoft3DP to install it download the zip file a
 
 *`wee_extensions --install tuxsoft3dp.zip`*
 
-I have choosen to also implement Weatherflow V40 protocol since that should provide ready to use
+I have chosen to also implement Weatherflow V40 protocol since that should provide ready to use
 software solutions, in particular I am investigating weeWx.
 
 ![WeatherFlow](https://weatherflow.github.io/SmartWeather/api/udp/v40/)
@@ -36,7 +38,7 @@ module is a simple UDP packet monitor primarily used for debugging and to detect
 The Wemoss code is compiled in with the Arduino (1.8.9) IDE, things that you might like to modify are..
 
  * Everything
- * INVERT_VANE if you end up installing your magnet backwartds (see src.ino)
+ * INVERT_VANE if you end up installing your magnet backwards (see src.ino)
  * Static or DHCP IP (see src.ino)
  * The hostname for OTA (see src.ino look for ESP.getChipId )
  * WindSpeed() its not tested just trivially calculated (see src.ino)
@@ -57,7 +59,7 @@ You need Python and netcat then open two terminal windows along with your Arduin
 run *`udp_test.py`*  in the other terminal have the following command primed and ready to go
 *`echo -n OTA | nc -u -w0 192.168.1.40 55550`*  on windows ignore -n
 
-Next whemn you see a weather packet received immediately send the OTA with netcat, you should then see a
+Next when you see a weather packet received immediately send the OTA with netcat, you should then see a
 second packet that confirms OTA was enabled. Now send the update via OTA using the Arduino IDE
 
 You can see this procedure ![on YouTube](https://youtu.be/7__c9c8BN8w)
@@ -107,7 +109,7 @@ You can see this procedure ![on YouTube](https://youtu.be/7__c9c8BN8w)
  **ML8511 -- WARNING !!! READ THIS !!! (See note A)**
 
  The ESP8266 ADC range is from zero to one volt, the output from the ML8511 will be to 3.3V so
- a resitor divider is needed to get it into range as follows ..
+ a resistor divider is needed to get it into range as follows ..
 
 
   ESP-A0 ----+---[220K]-----< ML8511 
@@ -131,7 +133,7 @@ You can see this procedure ![on YouTube](https://youtu.be/7__c9c8BN8w)
 ## 3D Printing
 
  When printing some filaments are semi transparent to IR light, so printing the anemometer encoder
- wheel can be a problem, I used so aluminium tape on the top of the encoder wheel.
+ wheel can be a problem, I used so aluminum tape on the top of the encoder wheel.
 
 
  You need to enable supports, NB When you assemble the weather vane, one of the neodymium magnets must
