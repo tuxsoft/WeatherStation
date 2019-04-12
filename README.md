@@ -2,7 +2,7 @@
 
 A WeMos based 3D printed WiFi weather station
 
-[TuxSoft Weather Station](https://github.com/tuxsoft/WeatherStation/blob/master/images/tux3dpweather.jpg)
+![TuxSoft Weather Station](https://github.com/tuxsoft/WeatherStation/blob/master/images/tux3dpweather.jpg)
 
 You can see this in [action](https://youtu.be/rjHQcb2TLco)
 
