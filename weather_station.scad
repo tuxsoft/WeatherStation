@@ -208,7 +208,12 @@ module bottom ()
 		union ()
 		{
 			translate ([0,0,2]) cylinder (d=28, h=9);
-			for (rot=[0,120,240])
+			rotate ([0,0,30]) translate ([27,0,2]) rotate ([0,0,9]) difference ()
+            {
+                cube ([9,10.2,18]);
+                translate ([-0.1,2.1,4]) cube ([11,6.1,18]);
+            }
+            for (rot=[0,120,240])
 			{
 				rotate ([0,0,rot])
 				{
@@ -339,7 +344,8 @@ module vane_cap ()
 		
 		vane_g_cuts ();
 		translate ([0,0,-1]) cylinder (d=79, h=10);
-		translate ([0,0,8]) cylinder (d1=82, d2=24, h=22);
+		// Uncomment below if you want a hollow cup
+		//translate ([0,0,9]) cylinder (d1=82, d2=24, h=22);
 	}
 	difference ()
 	{
@@ -629,30 +635,38 @@ module rain_bucket ()
 
 //======================= WeMoss Box=============================
 // Dont have the hardware yet so this is an estimation from a photo
+
+HOFF = 6;
+WT=2;
+LHS=87;
+SHS=21.6;
+BW = SHS+HOFF+WT*2;
 module wemos_box ()
 {
 	difference ()
 	{
+		
 		union ()
 		{
-			translate ([1,1,0]) rcube ([96+20, 28,25]);
-			rcube ([98+20,30,23]);
+			translate ([WT/2,WT/2,0]) rcube ([96+20, BW,25]);
+			rcube ([98+20,BW+WT,23]);
 		}
-		translate ([2,2,2]) rcube ([94+20, 26,25]);
+		translate ([WT,WT,WT]) rcube ([94+20, BW-WT,25]);
 		wemos_box_gcuts ();
 		
 		// Hole for wire T-Junction
-		translate ([98+8,15,-0.1]) cylinder (d=16, h=5); 
+		translate ([98+8,(BW+2)/2,-0.1]) cylinder (d=16, h=5); 
 	}
 	
 	difference ()
 	{
 		union ()
 		{
-			translate ([4.5,4.5,0]) cylinder (d=5,h=22);
-			translate ([93.5,4.5,0]) cylinder (d=5,h=22);
-			translate ([4.5,25.5,0]) cylinder (d=5,h=22);
-			translate ([93.5,25.5,0]) cylinder (d=5,h=22);
+			translate ([HOFF,HOFF,0]) cylinder (d=6,h=22);
+			translate ([HOFF,HOFF+SHS,0]) cylinder (d=6,h=22);
+
+			translate ([HOFF+LHS,HOFF,0]) cylinder (d=6,h=22);
+			translate ([HOFF+LHS,HOFF+SHS,0]) cylinder (d=6,h=22);
 		}
 		wemos_box_gcuts ();
 	}
@@ -662,10 +676,10 @@ module wemos_box ()
 	{
 		difference ()
 		{
-			rcube ([98+20,30,6]);
+			rcube ([98+20,BW+2,7.6]);
 			
-			translate ([2,2,2]) rcube ([94+20, 26,8]);
-			translate ([1,1,4]) rcube ([96+20, 28,8]);
+			translate ([2,2,2]) rcube ([94+20, BW-WT,8]);
+			translate ([1,1,4]) rcube ([96+20, BW,8]);
 			
 			wemos_box_gcuts ();
 		}
@@ -674,10 +688,10 @@ module wemos_box ()
 		{
 			union ()
 			{
-				translate ([4.5,4.5,0]) cylinder (d=5,h=5.4);
-				translate ([93.5,4.5,0]) cylinder (d=5,h=5.4);
-				translate ([4.5,25.5,0]) cylinder (d=5,h=5.4);
-				translate ([93.5,25.5,0]) cylinder (d=5,h=5.4);
+				translate ([HOFF,HOFF,0]) cylinder (d=6,h=7);
+				translate ([HOFF+LHS,HOFF,0]) cylinder (d=6,h=7);
+				translate ([HOFF,HOFF+SHS,0]) cylinder (d=6,h=7);
+				translate ([HOFF+LHS,HOFF+SHS,0]) cylinder (d=6,h=7);
 			}
 			wemos_box_gcuts ();
 		}
@@ -689,19 +703,19 @@ module wemos_pole_clamps ()
 	for  (o = [0,12,24,36])
 		translate ([o,0,0])difference ()
 	{
-		rcube ([10,30,8]);
+		rcube ([8,BW,8.5]);
 			
-		rotate ([0,90,0]) translate ([-10,15,-1]) cylinder (d=16, h= 12);
-		wemos_box_gcuts ();
+		rotate ([0,90,0]) translate ([-9.5,BW/2,-1]) cylinder (d=16, h= 12);
+		translate([-2,-WT/2,0]) wemos_box_gcuts ();
 	}
 }
 
 module wemos_box_gcuts ()
 {
-	translate ([4.5,4.5,-0.1]) cylinder (d=3.1,h=30);
-	translate ([93.5,4.5,-0.1]) cylinder (d=3.1,h=30);
-	translate ([4.5,25.5,-0.1]) cylinder (d=3.1,h=30);
-	translate ([93.5,25.5,-0.1]) cylinder (d=3.1,h=30);
+	translate ([HOFF,HOFF,-0.1]) cylinder (d=3.1,h=30);
+	translate ([HOFF+LHS,HOFF,-0.1]) cylinder (d=3.1,h=30);
+	translate ([HOFF,HOFF+SHS,-0.1]) cylinder (d=3.1,h=30);
+	translate ([HOFF+LHS,HOFF+SHS,-0.1]) cylinder (d=3.1,h=30);
 }
 
 //======================= Solar Panel Box =============================
@@ -726,8 +740,9 @@ module solar_box ()
 	}
 }
 
-solar_box (); // Uses same clamps as wemos
-translate ([0,-35,0]) wemos_pole_clamps ();
+cylinder (d=10, h=0.5);
+//solar_box (); // Uses same clamps as wemos
+//translate ([0,-35,0]) wemos_pole_clamps ();
 
 //wemos_box();
 //translate ([0,-35,0]) wemos_pole_clamps ();
@@ -742,9 +757,9 @@ translate ([0,-35,0]) wemos_pole_clamps ();
 
 //spacers ();
 //bottom (); rotate ([0,180,60]) color ("silver") translate ([0,0,-68.1]) top ();
-//top ();
+//top ();\
+//difference ()
 //bottom ();
-
 //vane ();
 //vane_nut_cap ();
 //vane_cap ();
