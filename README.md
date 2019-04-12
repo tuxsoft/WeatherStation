@@ -30,12 +30,12 @@ To use this driver D3 must be pulled LOW
 
 ## Software:
 
-The main components is the embedded firmware in the Wemoss, in addition there is are a few simple python
+The main components is the embedded firmware in the Wemos, in addition there is are a few simple python
 modules that comprise of the weewx driver (TuxSoft3DP) and a simple GUI based Weather monitor that provides
 a wind direction indicator and some basic information that is updated as received by the station. The other
 module is a simple UDP packet monitor primarily used for debugging and to detect when OTA mode is enabled.
 
-The Wemoss code is compiled in with the Arduino (1.8.9) IDE, things that you might like to modify are..
+The Wemos code is compiled in with the Arduino (1.8.9) IDE, things that you might like to modify are..
 
  * Everything
  * INVERT_VANE if you end up installing your magnet backwards (see src.ino)
@@ -125,7 +125,7 @@ You can see this procedure [on YouTube](https://youtu.be/7__c9c8BN8w)
 
 ## Note A
 
- I have not yet received the WeMoss with battery, but from what I can tell there is already a 220K/100K divider
+ I have not yet received the WeMos with battery, but from what I can tell there is already a 220K/100K divider
  built into the board for the analogue input. Like all things from China this must be verified before assumption.
  Update,indeed the divider was Included on the board.
 
