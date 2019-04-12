@@ -2,9 +2,9 @@
 
 A WeMos based 3D printed WiFi weather station
 
-![TuxSoft Weather Station](https://github.com/tuxsoft/WeatherStation/images/station.png)
+[TuxSoft Weather Station](https://github.com/tuxsoft/WeatherStation/images/tux3dpweather.jpg)
 
-You can see this in ![action](https://youtu.be/rjHQcb2TLco)
+You can see this in [action](https://youtu.be/rjHQcb2TLco)
 
 I have been meaning to build a weather station for a few years then recently I saw i
 Dan Bemowski's https://www.thingiverse.com/thing:2757369
@@ -21,11 +21,11 @@ Included is a driver for weeWX, TuxSoft3DP to install it download the zip file a
 I have chosen to also implement Weatherflow V40 protocol since that should provide ready to use
 software solutions, in particular I am investigating weeWx.
 
-![WeatherFlow](https://weatherflow.github.io/SmartWeather/api/udp/v40/)
+[WeatherFlow](https://weatherflow.github.io/SmartWeather/api/udp/v40/)
 
-![weeWx](http://www.weewx.com/)
+[weeWx](http://www.weewx.com/)
 
-![Weatherflow Driver for weeWx by Arthur Emerson](https://github.com/captain-coredump/weatherflow-udp)
+[Weatherflow Driver for weeWx by Arthur Emerson](https://github.com/captain-coredump/weatherflow-udp)
 To use this driver D3 must be pulled LOW 
 
 ## Software:
