@@ -31,6 +31,8 @@
 #include <time.h>
 #include "WeatherFlow.h"
 
+extern void enableWiFi ();
+
 // Global weather parms sent by post to server
 extern int windDirection;
 extern int humidity;
@@ -48,12 +50,13 @@ static void sendPacket (const char *data, int dlen)
 	uint32_t bca = WiFi.localIP ();
 	bca |= 0xFF000000;
 	IPAddress bcast (bca);
-	Serial.println (bcast.toString ());
+//	Serial.println (bcast.toString ());
 
 	Udp.beginPacketMulticast (bcast, 50222, WiFi.localIP());
 	Udp.write (data, dlen);
 	Udp.endPacket ();
 	Udp.flush ();
+	Serial.print ("wTx.");
 }
 
 

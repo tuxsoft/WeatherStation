@@ -1,4 +1,5 @@
-To Get the WROOM 02 to work with the new Arduino IDE (1.8+) I had to modify the WEMOS D1 R1 baord config in boards.txt
+To Get the WROOM 02 to work with the new Arduino IDE (1.8+) I had to modify the WEMOS D1 R1 baord config
+in boards.txt. This is the quick and dirty easy way !
 
 Find ..
 		d1_mini.build.flash_freq=40

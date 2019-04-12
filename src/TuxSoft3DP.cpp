@@ -50,6 +50,8 @@
 
 
 extern WiFiUDP Udp;
+extern int otaMode;
+char packetBuffer[4];
 
 /*
  * The weeWx or other appliucation will generate the time stamp
@@ -80,10 +82,40 @@ void txTux (float outTemp,
 	uint32_t bca = WiFi.localIP ();
 	bca |= 0xFF000000;
 	IPAddress bcast (bca);
-	Serial.println (bcast.toString ());
+//	Serial.println (bcast.toString ());
 
 	Udp.beginPacketMulticast (bcast, 55555, WiFi.localIP());
 	Udp.write (data.c_str(), data.length());
 	Udp.endPacket ();
 	Udp.flush ();
+	Serial.print ("Tx.");
+
+	otaMode = 0;
+	for (int r = 0; r < 200 && otaMode == 0; r++)
+	{
+		int packetSize = Udp.parsePacket();
+		if (packetSize)
+		{
+			// read the packet into packetBufffer
+			Udp.read(packetBuffer, 4);
+			if (packetBuffer[0] == 'O' &&
+				packetBuffer[1] == 'T' &&
+				packetBuffer[2] == 'A')
+			{
+				Serial.println ("OTA Mode..");
+
+				Udp.beginPacketMulticast (bcast, 55551, WiFi.localIP());
+				Udp.write ("{\"OTA\":\"enabled\"}", 17);
+				Udp.endPacket ();
+				Udp.flush ();
+				otaMode = 1;
+			}
+
+			packetBuffer[0] = 0;
+			packetBuffer[1] = 0;
+			packetBuffer[2] = 0;
+			packetBuffer[3] = 0;
+		}
+		delay (10);
+	}
 }

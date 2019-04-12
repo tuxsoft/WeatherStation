@@ -31,35 +31,56 @@
   Choice not to use EEPROM to save averages, I mean things never crash right and if
   they do we can't change the weather.
 
-  I choose to use weaterflow because it looks like a clean and simple interface, hopefully
-  more software support will be available. Looking at weeWx right now. One thing they lack
-  is internal temp, I will add some custom messages to get different status from the station
-  for my own use, its pretty simple when using JSON
+  I have choosen to use a simple JSON based protocol (TuxSoft3DP) you can also enable
+  weatherflow if you ground D3 .. I decided to support weaterflow because it looks like
+  a clean and simple interface, hopefully more software support will be available.
+  
+  Looking at weeWx right now. One thing they lack is internal temp, I will add some
+  custom messages to get different status from the station for my own use, its pretty
+  simple when using JSON
 
   Rain: .. r=34mm Area = 0.03637932 M2  so 36.38ml = 1mm of rain 
            Tipper takes 1.9ml to tip so each tip is 0.052mm
 */
 
-#define TIP_VOL	0.052
+// Your vane tip magnet orientation N or S might require this
+#define INVERT_VANE	1
+#define TIP_VOL	0.052	// Might be worth calibrating this
 
 #include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
 #include <ArduinoOTA.h>
 #include <Wire.h>
 #include <time.h>
-#include <Adafruit_BMP280.h>
+#include <BME280I2C.h>
 #include <DHT.h>
 
 #include "WeatherCock.h"
 #include "TuxSoft3DP.h"
 #include "WeatherFlow.h"
 
-#define OTA_ENABLE	1
+#define STATIC_IP	1
+#define MY_IP IPAddress(192,168,1,40)
+#define MY_DNS IPAddress(192,168,1,254)
+#define MY_GW IPAddress(192,168,1,254)
+
+BME280I2C::Settings settings (
+	BME280::OSR_X1,
+	BME280::OSR_X1,
+	BME280::OSR_X1,
+	BME280::Mode_Forced,
+	BME280::StandbyTime_1000ms,
+	BME280::Filter_Off,
+	BME280::SpiEnable_False,
+	BME280I2C::I2CAddr_0x77 // I2C address. I2C specific.
+);
+
+BME280I2C bmp(settings);
 
 DHT dht (D5, DHT22);
-Adafruit_BMP280 bmp;	// I2C version
 WeatherCock vane;
 
+int otaMode = 0;
 int lastP = 0;
 // Global weather parms sent by post to server
 int windTime = 0;
@@ -68,8 +89,8 @@ int rainTipper = 0;
 int sampleRainTipper = 0;
 int tipState = 0;
 float humidity = 80.0;
-int uvIndex = 0;
-int celcius = 20;
+float uvIndex = 0;
+float celcius = 20;
 int barometer = 771;
 
 #include "ssid.h"
@@ -121,29 +142,77 @@ float mapfloat (float x, float in_min, float in_max, float out_min, float out_ma
 	return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
+void stopWiFi ()
+{
+	delay (2000);	// Let things finish
+
+	WiFi.mode (WIFI_OFF);
+	WiFi.forceSleepBegin ();
+    delay (10);
+	Serial.println ("WiFi - OFF");
+}
+
+void startWiFi ()
+{
+	WiFi.forceSleepWake ();
+    delay (10);
+	float dbm = 0;
+	WiFi.setOutputPower (0.0);
+	WiFi.mode (WIFI_STA);
+	WiFi.begin (ssid, passwd);
+
+	unsigned char loopCnt = 0;
+	while (WiFi.status() != WL_CONNECTED)
+	{
+		delay(500);
+		Serial.print ("c.");
+		if (++loopCnt == 10)
+		{
+			loopCnt = 0;
+			if (++dbm < 20)
+			{
+				WiFi.setOutputPower (dbm);
+			}
+			else
+			{
+				dbm = 0;
+			}
+		}
+	}
+	Serial.print ("WiFi - PWR ");
+	Serial.println (dbm);
+}
+
+
 
 void setup()
 {
 	Wire.begin ();
 	Serial.begin (115200);
+	Serial.println ("TuxSoft3DP Weather Ver 1.0");
 	vane.begin ();
 
-	pinMode (D2, INPUT_PULLUP);		// Mode + TuxSoft3DP  :  - Weatherflow
+	pinMode (D3, INPUT_PULLUP);		// Mode + TuxSoft3DP  :  - Weatherflow
 	pinMode (D7, INPUT_PULLUP);
 	pinMode (D6, INPUT);
 
-	WiFi.mode (WIFI_STA);
-	WiFi.begin (ssid, passwd);
+	dht.begin ();
 
-	while (WiFi.status() != WL_CONNECTED)
+#if STATIC_IP
+	WiFi.config (MY_IP, MY_DNS, MY_GW);
+#endif
+
+	startWiFi ();
+
+	// Setup for OTA
+	if (ESP.getChipId() == 0x1330CC)
 	{
-		delay(500);
-		Serial.print ("c.");
+		ArduinoOTA.setHostname ("weather");
 	}
-
-#ifdef OTA_ENABLE
-
-	ArduinoOTA.setHostname ("weather");
+	else
+	{
+		ArduinoOTA.setHostname ("weather-dev");
+	}
 
 	ArduinoOTA.onStart ([](){ Serial.println("Start"); });
 	ArduinoOTA.onEnd ([]() { Serial.println("\nEnd"); });
@@ -164,24 +233,32 @@ void setup()
 	});
 	ArduinoOTA.begin();
 
-#endif
+
 	getTime ();
 
 	// GMT+2
 	Serial.println("");
+	Serial.printf("Chip ID = %08X\n", ESP.getChipId());
 	time_t now = time (nullptr);
 	Serial.println (now);
 	Serial.println (ctime (&now));
 
-	Udp.begin (50223);
+	Udp.begin (55550);
 
 	if (!bmp.begin())
 	{
-		Serial.println ("Can't init BMP280 Barometer");
+		Serial.print ("Can't ");
 	}
+	Serial.println ("Init BMP280 Barometer");
+
+	// Don't change this the wxweather driver converts to preference
+//	BME280::TempUnit tempUnit(BME280::TempUnit_Celsius);
+//	BME280::PresUnit presUnit(BME280::PresUnit_Pa);
 
 	attachInterrupt (digitalPinToInterrupt(D7), windTriggerH, FALLING);
 	tipState = digitalRead (D6);
+
+	stopWiFi ();
 }
 
 /*
@@ -195,10 +272,9 @@ float windSpeed (int ms)
 		return 0;
 	}
 
-	// Probably need a calibration curve, but for now assume 100% good
-	// Anemometer diameter is 492mm
+	// K = 4.8
 
-	return 492.0 / ms;
+	return 1000 / ms * 4.8;
 }
 
 
@@ -215,11 +291,9 @@ void loop()
 	static int lmin = -1;
 	static int lsec = -1;
 
-#ifdef OTA_ENABLE
-	ArduinoOTA.handle();
-#endif
+	static float pres, temp, dummy;
 
-	// Tux#DP parms
+	// Tux3DP parms
 	static float txWindGust = 0;
 	static float txWindGustDir = 0;
 
@@ -230,12 +304,13 @@ void loop()
 		sampleRainTipper++;
 		if (rainTipper++ == 0)
 		{
-			Serial.println ("rainStartEvent");
-			rainStartEvent ();
+			if (digitalRead (D3) == LOW)
+			{
+				Serial.println ("rainStartEvent");
+				rainStartEvent ();
+			}
 		}
 	}
-
-	int tmp = vane.temp();
 
 	int16_t x,y,z;
 	if (vane.readXYZ (&x,&y,&z) == 0)
@@ -252,6 +327,9 @@ void loop()
 	if(heading < 0)    heading += 2*PI;  // Correct for when signs are reversed.
 	if(heading > 2*PI) heading -= 2*PI;  // Correct for when heading exceeds 360-degree, especially when declination is included
 	int angle = int(heading * 180/M_PI); // Convert radians to degrees for more a more usual result
+#if INVERT_VANE
+	angle = 360 - angle;
+#endif
 
 	if (langle != angle)
 	{
@@ -259,13 +337,14 @@ void loop()
 		Serial.print("Heading (degrees): "); 
 		Serial.println(angle);
 	}
-	if (ltmp != tmp)
+	// Just for info
+	if (ltmp != (int)celcius)
 	{
 		Serial.print ("Temp: ");
-		Serial.println (tmp);
-		ltmp = tmp;
-		Serial.print ("BMP280 Temp: ");
 		Serial.println (celcius);
+		ltmp = celcius;
+		Serial.print (" Bmp: ");
+		Serial.println (pres);
 	}
 	if (windTime != 0 && lwt != windTime)
 	{
@@ -273,7 +352,7 @@ void loop()
 		{
 			txWindGust = windSpeed (windTime);
 			txWindGustDir = angle;
-			if (digitalRead (D2) == LOW)
+			if (digitalRead (D3) == LOW)
 			{
 				rapidWind (windSpeed (windTime), angle);
 			}
@@ -296,21 +375,44 @@ void loop()
 			txWindGust = windSpeed (windHSample);
 			txWindGustDir = angle;
 	}
-	if (timeinfo->tm_sec % 20== 0 && lsec != timeinfo->tm_sec)	// Tux data @ 20 seconds
+//	if (timeinfo->tm_sec % 20 == 0 && lsec != timeinfo->tm_sec)	// Tux data @ 20 seconds
+	if (timeinfo->tm_min % 2 == 0 && lmin != timeinfo->tm_min)	// Tux data @ 2 min
 	{
+		startWiFi ();
+
+		bmp.read (pres, temp, dummy);
+		if (!isnan(temp))
+		{
+			celcius = temp;
+			barometer = pres;
+		}
+
 		// Read the current UV Index
 		int mlv = analogRead (A0);
-		uvIndex = mapfloat ((mlv/1023.0)*3.3, 0.99, 2.8, 0.0, 15.0); //Convert the voltage to a UV intensity level
-
-		humidity = dht.readHumidity();
-		if (isnan (humidity))
+		for(int a = 0 ; a < 7 ; a++)
 		{
-			humidity = 12.34;	// Junk
+			mlv += analogRead (A0);
 		}
-		if (digitalRead (D2) == HIGH)
+
+		uvIndex = mapfloat (((float)mlv * 3.3)/(8*1023.0), 0.99, 2.8, 0.0, 15.0); //Convert the voltage to a UV intensity level
+		Serial.print("mlv: "); 
+		Serial.print(mlv);
+		Serial.print(" UV: "); 
+		Serial.println(uvIndex);
+
+		// Only update a valid value
+		float tfloat = dht.readHumidity();
+		if (!isnan (tfloat))
 		{
-			txTux (ltmp, /*bmp.readTemperature (),*/		// TODO: put back once sensor arrives
-				   bmp.readPressure (),
+			humidity = tfloat;
+		}
+		Serial.print("Humidity: "); 
+		Serial.println(humidity);
+
+		if (digitalRead (D3) == HIGH)
+		{
+			txTux (celcius,
+				   barometer,
 				   windSpeed (windAvg),
 				   angle,
 				   txWindGust,
@@ -321,16 +423,35 @@ void loop()
 		}
 
 		txWindGust = 0;
+
+		if (otaMode != 0)	// Try OTA for 1 Min
+		{
+			int retry;
+			for (retry = 0; retry < 600; retry++)
+			{
+				ArduinoOTA.handle();
+				delay (100);
+			}
+			otaMode = 0;
+		}
+
+		stopWiFi ();
 	}
 
 
 	if (timeinfo->tm_min % AIR_INTERVAL == 0 && timeinfo->tm_sec == 0 && lmin != timeinfo->tm_min)
 	{
-		barometer = bmp.readPressure ();
-		celcius = bmp.readTemperature ();
+		bmp.read (pres, temp, dummy);
+		celcius = temp;
+		barometer = pres;
+		if (isnan (celcius))
+		{
+			celcius = 0;
+			barometer = 0;
+		}
 		// Humidity done by Tux
 
-		if (digitalRead (D2) == LOW)
+		if (digitalRead (D3) == LOW)
 		{
 			observationAir ();
 		}
@@ -365,7 +486,7 @@ void loop()
 	if (timeinfo->tm_min % SKY_INTERVAL == 0 && timeinfo->tm_sec == 0 && lmin != timeinfo->tm_min)
 	{
 
-		if (digitalRead (D2) == LOW)
+		if (digitalRead (D3) == LOW)
 		{
 			observationSky (rainTipper * TIP_VOL, sampleRainTipper * TIP_VOL,
 							windSpeed (windLull), windSpeed (windAvg), windSpeed (windGust));
@@ -381,7 +502,9 @@ void loop()
 	if (timeinfo->tm_hour == 0 && timeinfo->tm_min == 0 && timeinfo->tm_sec == 0 && lsec != 0)
 	{
 		rainTipper = 0;
+		startWiFi ();
 		getTime ();		// Refresh clock 
+		stopWiFi ();
 	}
 	lsec = timeinfo->tm_sec;
 	lmin = timeinfo->tm_min;
