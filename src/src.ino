@@ -478,9 +478,13 @@ void loop()
 		startWiFi ();
 
 		bmp.read (pres, temp, dummy);
+		// Do each transfer seperate as this sensore is iffy and either or both pres and temp can be nan
 		if (!isnan(temp))
 		{
 			celcius = temp;
+		}
+		if (!isnan(pres))
+		{
 			barometer = pres;
 		}
 
