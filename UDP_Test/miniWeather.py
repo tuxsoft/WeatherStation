@@ -164,8 +164,8 @@ if __name__ == "__main__":
             pass
         else:
             if len(data) > 0 :
-                print time.strftime('%H:%M:%S : '), data
                 if 'TS3DP' in data:
+                    print time.strftime('%H:%M:%S : '), data
                     pkt = json.loads (data)
                     compass.setAngle (pkt["windDir"])
                     deg = u"\u00b0"
