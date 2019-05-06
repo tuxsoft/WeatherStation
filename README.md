@@ -68,10 +68,10 @@ In the latest release there is a very trivial KISS command interface that provid
  * SSID - Change the SSID to use. *`echo -n "SSID MySsidName" | nc -u -w0 192.168.1.40 55550`*
  * HOST - Change the hostname used. *`echo -n "HOST MyHostName" | nc -u -w0 192.168.1.40 55550`*
  * PWD - Change the WiFi password. *`echo -n "PWD MySecret" | nc -u -w0 192.168.1.40 55550`*
- * DBG - Select debug leve, 0 = off, 1,2,3 verbosity level. *`echo -n "DBG 0" | nc -u -w0 192.168.1.40 55550`*
+ * DBG - Select debug level, 0 = off, 1,2,3 verbosity level. *`echo -n "DBG 0" | nc -u -w0 192.168.1.40 55550`*
 
-The SSID, Hostname, and Password are currently limited to 20 charaters each. If you need more change the persistent struct.
-These commands work in exactly the same principle as OTA so you have to wait for an incomming data packet to activate them.
+The SSID, Hostname, and Password are currently limited to 20 characters each. If you need more change the persistent struct.
+These commands work in exactly the same principle as OTA so you have to wait for an incoming data packet to activate them.
 
 ## Hardware:
 
@@ -186,7 +186,7 @@ These commands work in exactly the same principle as OTA so you have to wait for
  
 # The mounting assembly
 
- Cut the copper pipe int the following lengths and label them accordingly..
+ Cut the copper pipe into the following lengths and label them accordingly..
  
  * A - 200mm
  * B - 220mm
