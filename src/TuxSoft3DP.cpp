@@ -49,9 +49,14 @@
 */
 
 
+extern void saveSSID (char *);
+extern void savePWD (char *);
+extern void saveHOSTNAME (char *);
+extern void saveDEBUG (int);
+
 extern WiFiUDP Udp;
 extern int otaMode;
-char packetBuffer[4];
+extern char debugBuf[];
 
 /*
  * The weeWx or other appliucation will generate the time stamp
@@ -97,25 +102,78 @@ void txTux (float outTemp,
 		if (packetSize)
 		{
 			// read the packet into packetBufffer
-			Udp.read(packetBuffer, 4);
-			if (packetBuffer[0] == 'O' &&
-				packetBuffer[1] == 'T' &&
-				packetBuffer[2] == 'A')
+
+			debugBuf[0] = 0;
+			debugBuf[1] = 0;
+			debugBuf[2] = 0;
+			debugBuf[3] = 0;
+
+			Udp.read(debugBuf, 79);
+			if (debugBuf[0] == 'O' &&
+				debugBuf[1] == 'T' &&
+				debugBuf[2] == 'A')
 			{
+				// Full Power more reliabl;e
+				WiFi.setOutputPower (20.5);
 				Serial.println ("OTA Mode..");
 
-				Udp.beginPacketMulticast (bcast, 55551, WiFi.localIP());
+				Udp.beginPacketMulticast (bcast, 55555, WiFi.localIP());
 				Udp.write ("{\"OTA\":\"enabled\"}", 17);
 				Udp.endPacket ();
 				Udp.flush ();
 				otaMode = 1;
 			}
-
-			packetBuffer[0] = 0;
-			packetBuffer[1] = 0;
-			packetBuffer[2] = 0;
-			packetBuffer[3] = 0;
+			else if (debugBuf[0] == 'R' &&
+				debugBuf[1] == 'S' &&
+				debugBuf[2] == 'T')
+			{
+				ESP.restart();
+			}
+			else if (debugBuf[0] == 'S' &&
+				debugBuf[1] == 'S' &&
+				debugBuf[2] == 'I' &&
+				debugBuf[4] == 'D')
+			{
+				saveSSID (&debugBuf[6]);
+			}
+			else if (debugBuf[0] == 'H' &&
+				debugBuf[1] == 'O' &&
+				debugBuf[2] == 'S' &&
+				debugBuf[4] == 'T')
+			{
+				saveHOSTNAME (&debugBuf[6]);
+			}
+			else if (debugBuf[0] == 'P' &&
+				debugBuf[1] == 'W' &&
+				debugBuf[2] == 'D')
+			{
+				savePWD (&debugBuf[4]);
+			}
+			else if (debugBuf[0] == 'D' &&
+				debugBuf[1] == 'B' &&
+				debugBuf[2] == 'G')
+			{
+				saveDEBUG (debugBuf[4]-'0');
+			}
 		}
 		delay (10);
 	}
+}
+
+void txDebug (char *txb)
+{
+	String data = String ("{\"DEBUG\":\"");				// Chech this is you want to distiguish multiple stations
+	data += txb;
+	data += "\"}";
+
+	uint32_t bca = WiFi.localIP ();
+	bca |= 0xFF000000;
+	IPAddress bcast (bca);
+//	Serial.println (bcast.toString ());
+
+	Udp.beginPacketMulticast (bcast, 55555, WiFi.localIP());
+	Udp.write (data.c_str(), data.length());
+	Udp.endPacket ();
+	Udp.flush ();
+	delay (10);
 }
