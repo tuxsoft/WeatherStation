@@ -44,10 +44,10 @@
 */
 
 // Your vane tip magnet orientation N or S might require this
-#define INVERT_VANE	1
 #define TIP_VOL	0.052	// Might be worth calibrating this
 
 #include <ESP8266WiFi.h>
+#include <EEPROM.h>
 #include <WiFiUdp.h>
 #include <ArduinoOTA.h>
 #include <Wire.h>
@@ -57,12 +57,14 @@
 
 #include "WeatherCock.h"
 #include "TuxSoft3DP.h"
-#include "WeatherFlow.h"
+#include "ssid.h"
 
 #define STATIC_IP	1
 #define MY_IP IPAddress(192,168,1,40)
 #define MY_DNS IPAddress(192,168,1,254)
 #define MY_GW IPAddress(192,168,1,254)
+
+#define ESP_CHIP_ID	0x1330CC		// Change this to match your H/W
 
 BME280I2C::Settings settings (
 	BME280::OSR_X1,
@@ -80,30 +82,46 @@ BME280I2C bmp(settings);
 DHT dht (D5, DHT22);
 WeatherCock vane;
 
+// Persistent data stored in "eeprom (actually flash)"
+struct
+{
+    ushort sig;
+	int debug;
+	int vane_offset;
+    char ssid[20];
+    char password[20];
+    char hostname[20];
+} persistent;
+
 int otaMode = 0;
 int lastP = 0;
 // Global weather parms sent by post to server
-int windTime = 0;
-int windDirection = 0;
-int rainTipper = 0;
-int sampleRainTipper = 0;
+int vane_offset = 0;
+unsigned int windTime = 0;
+unsigned int windDirection = 0;
+unsigned int rainTipper = 0;
+unsigned int sampleRainTipper = 0;
 int tipState = 0;
 float humidity = 80.0;
 float uvIndex = 0;
 float celcius = 20;
-int barometer = 771;
+float barometer = 771;
 
-#include "ssid.h"
+void I2C_Reset ();
+
+void txDebug (char *txb);
+char debugBuf[80];
+
 WiFiUDP Udp;
-
 
 /*
  Interrupt handler for the anemometer
+ windTime is always the current wind condition
  */
 
 void windTriggerH ()
 {
-	static long summer = 0;
+	static unsigned long summer = 0;
 	static unsigned char cntr = 0;
 
 	int t = millis ();
@@ -112,16 +130,59 @@ void windTriggerH ()
 		return;
 	}
 
+	if (t - lastP > 5000)
+	{
+		windTime = 0;
+		summer = 0;
+		cntr = 0;
+		lastP = t;
+		return;
+	}
+
 	summer = summer + (t - lastP);
 	lastP = t;
-	if (++cntr == 10)
+	if (++cntr == 5)
 	{
-		windTime = summer / 10;
+		windTime = summer / 5;
 		summer = 0;
 		cntr = 0;
 	}
 }
 
+void saveSSID (char *p)
+{
+	strncpy (persistent.ssid, p, 20);
+	EEPROM.put (0, persistent);
+	EEPROM.commit ();
+}
+
+void savePWD (char *p)
+{
+	strncpy (persistent.password, p, 20);
+	EEPROM.put (0, persistent);
+	EEPROM.commit ();
+}
+
+void saveHOSTNAME (char *p)
+{
+	strncpy (persistent.hostname, p, 20);
+	EEPROM.put (0, persistent);
+	EEPROM.commit ();
+}
+
+void saveDEBUG (int v)
+{
+	persistent.debug = v;
+	EEPROM.put (0, persistent);
+	EEPROM.commit ();
+}
+
+void saveVANE (int v)
+{
+	persistent.vane_offset = v;
+	EEPROM.put (0, persistent);
+	EEPROM.commit ();
+}
 /*
  Get the time from network NTP server, my server is hard coded
  */
@@ -142,24 +203,39 @@ float mapfloat (float x, float in_min, float in_max, float out_min, float out_ma
 	return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
+// Save power and down the WiFi modem
+
 void stopWiFi ()
 {
-	delay (2000);	// Let things finish
+	if (persistent.debug == 0)
+	{
+		delay (2000);	// Let things finish
 
-	WiFi.mode (WIFI_OFF);
-	WiFi.forceSleepBegin ();
-    delay (10);
-	Serial.println ("WiFi - OFF");
+		WiFi.mode (WIFI_OFF);
+		WiFi.forceSleepBegin ();
+		delay (10);
+		Serial.println ("WiFi - OFF");
+	}
 }
+
+// Enable the WiFi modem and get a connection
 
 void startWiFi ()
 {
+	if (persistent.debug > 0)
+	{
+		if (WiFi.status() == WL_CONNECTED)
+		{
+			return;
+		}
+	}
+
 	WiFi.forceSleepWake ();
     delay (10);
 	float dbm = 0;
 	WiFi.setOutputPower (0.0);
 	WiFi.mode (WIFI_STA);
-	WiFi.begin (ssid, passwd);
+	WiFi.begin (persistent.ssid, persistent.password);
 
 	unsigned char loopCnt = 0;
 	while (WiFi.status() != WL_CONNECTED)
@@ -172,6 +248,8 @@ void startWiFi ()
 			if (++dbm < 20)
 			{
 				WiFi.setOutputPower (dbm);
+				WiFi.mode (WIFI_STA);
+				WiFi.begin (persistent.ssid, persistent.password);
 			}
 			else
 			{
@@ -187,12 +265,29 @@ void startWiFi ()
 
 void setup()
 {
+	I2C_Reset ();
 	Wire.begin ();
+
+	EEPROM.begin (sizeof(persistent)+2);
+
+	EEPROM.get(0, persistent);
+
+	if (persistent.sig != 0x55AA)		// Signature failed, setup defaults
+	{
+		persistent.sig = 0x55AA;
+		strcpy (persistent.ssid, ssid);			// Default ssid and paswd from "ssid.h"
+		strcpy (persistent.password, passwd);
+		strcpy (persistent.hostname, "weather");
+		persistent.debug = 0;
+		persistent.vane_offset = 0;
+		EEPROM.put (0, persistent);
+		EEPROM.commit ();
+	}
+
 	Serial.begin (115200);
-	Serial.println ("TuxSoft3DP Weather Ver 1.0");
+	Serial.println ("TuxSoft3DP Weather Ver 1.1");
 	vane.begin ();
 
-	pinMode (D3, INPUT_PULLUP);		// Mode + TuxSoft3DP  :  - Weatherflow
 	pinMode (D7, INPUT_PULLUP);
 	pinMode (D6, INPUT);
 
@@ -205,17 +300,10 @@ void setup()
 	startWiFi ();
 
 	// Setup for OTA
-	if (ESP.getChipId() == 0x1330CC)
-	{
-		ArduinoOTA.setHostname ("weather");
-	}
-	else
-	{
-		ArduinoOTA.setHostname ("weather-dev");
-	}
+	ArduinoOTA.setHostname (persistent.hostname);
 
-	ArduinoOTA.onStart ([](){ Serial.println("Start"); });
-	ArduinoOTA.onEnd ([]() { Serial.println("\nEnd"); });
+	ArduinoOTA.onStart ([]() { detachInterrupt(digitalPinToInterrupt(D7)); Serial.println("Start");});
+	ArduinoOTA.onEnd ([]() { attachInterrupt (digitalPinToInterrupt(D7), windTriggerH, FALLING); Serial.println("\nEnd"); });
 
 	ArduinoOTA.onProgress ([](unsigned int progress, unsigned int total)
 	{
@@ -224,6 +312,7 @@ void setup()
 	
 	ArduinoOTA.onError([](ota_error_t error)
 	{
+		attachInterrupt (digitalPinToInterrupt(D7), windTriggerH, FALLING);
 		Serial.printf("Error[%u]: ", error);
 		if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
 		else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
@@ -262,10 +351,10 @@ void setup()
 }
 
 /*
- Calculate the wind speed applying a calibration curve
+ Calculate the wind speed applying a calibration curve (not yet implemented, simple calc for now)
  */
 
-float windSpeed (int ms)
+float calcWindSpeed (unsigned int ms)
 {
 	if (ms == 0)
 	{
@@ -274,7 +363,7 @@ float windSpeed (int ms)
 
 	// K = 4.8
 
-	return 1000 / ms * 4.8;
+	return 4800.0 / ms;
 }
 
 
@@ -283,17 +372,13 @@ void loop()
 	static int langle = -1;
 	static int lwt = 0;
 	static int ltmp = 0;
-	static int windLull = 0;
-	static int windAvg = 0;
-	static int windGust = 0;
-	static int windHSample = 0;
-	static int windLSample = 0;
 	static int lmin = -1;
 	static int lsec = -1;
 
 	static float pres, temp, dummy;
 
 	// Tux3DP parms
+	static float txWindSpeed = 0;
 	static float txWindGust = 0;
 	static float txWindGustDir = 0;
 
@@ -304,10 +389,9 @@ void loop()
 		sampleRainTipper++;
 		if (rainTipper++ == 0)
 		{
-			if (digitalRead (D3) == LOW)
+			if (persistent.debug > 0)
 			{
-				Serial.println ("rainStartEvent");
-				rainStartEvent ();
+				txDebug ("Started raining");
 			}
 		}
 	}
@@ -317,7 +401,10 @@ void loop()
 	{
 		if (x == 0 && y == 0 && z == 0)
 		{
-			Serial.println ("** No Data **");
+			if (persistent.debug > 0)
+			{
+				txDebug ("Error: No weathercock data");
+			}
 		}
 		delay (50);
 		return;
@@ -327,56 +414,66 @@ void loop()
 	if(heading < 0)    heading += 2*PI;  // Correct for when signs are reversed.
 	if(heading > 2*PI) heading -= 2*PI;  // Correct for when heading exceeds 360-degree, especially when declination is included
 	int angle = int(heading * 180/M_PI); // Convert radians to degrees for more a more usual result
-#if INVERT_VANE
-	angle = 360 - angle;
-#endif
 
-	if (langle != angle)
+ 	int rawAngle = angle;
+	angle = (angle + vane_offset)%360;
+	if (abs(langle- angle) > 4)
 	{
 		langle = angle;
-		Serial.print("Heading (degrees): "); 
-		Serial.println(angle);
+		if (persistent.debug > 2)
+		{
+			sprintf (debugBuf, "Heading (degrees): Raw %d - Corrected %d", rawAngle, angle);
+			txDebug (debugBuf);
+			Serial.println (debugBuf);
+		}
 	}
 	// Just for info
 	if (ltmp != (int)celcius)
 	{
-		Serial.print ("Temp: ");
-		Serial.println (celcius);
 		ltmp = celcius;
-		Serial.print (" Bmp: ");
-		Serial.println (pres);
-	}
-	if (windTime != 0 && lwt != windTime)
-	{
-		if (windTime - lwt > 100)
+		if (persistent.debug > 1)
 		{
-			txWindGust = windSpeed (windTime);
+			sprintf (debugBuf, "Temp: %f :  Bmp: %f", ltmp, barometer);
+			txDebug (debugBuf);
+			Serial.println (debugBuf);
+		}
+	}
+	if (windTime != 0 && (lwt != windTime || txWindSpeed == 0))
+	{
+		float tf = calcWindSpeed (windTime);
+		if (txWindGust < tf)
+		{
+			txWindGust = tf;
 			txWindGustDir = angle;
-			if (digitalRead (D3) == LOW)
+			if (persistent.debug > 1)
 			{
-				rapidWind (windSpeed (windTime), angle);
+				txDebug ("Wind gust");
 			}
 		}
 		lwt = windTime;
-		return;
-	}
-	if (millis() - lastP > 5000 && windTime != 0)
-	{
-		windTime = 0;
-		Serial.println ("SWind: 0");
+		if (txWindSpeed != 0)
+		{
+			txWindSpeed = (tf + txWindSpeed) / 2;	// running average
+		}
+		else
+		{
+			txWindSpeed = tf;	// initial sample
+		}
+
+		if (persistent.debug > 2)
+		{
+			sprintf (debugBuf, "WindSpeed I:%f,A:%f", tf,txWindSpeed);
+			txDebug (debugBuf);
+			Serial.println (debugBuf);
+		}
 	}
 
 	time_t now = time (nullptr);
 	struct tm *timeinfo = localtime (&now);
 
-	// Update parms
-	if (txWindGust < windSpeed (windHSample))
-	{
-			txWindGust = windSpeed (windHSample);
-			txWindGustDir = angle;
-	}
 //	if (timeinfo->tm_sec % 20 == 0 && lsec != timeinfo->tm_sec)	// Tux data @ 20 seconds
-	if (timeinfo->tm_min % 2 == 0 && lmin != timeinfo->tm_min)	// Tux data @ 2 min
+//	if (timeinfo->tm_min % 2 == 0 && lmin != timeinfo->tm_min)	// Tux data @ 2 min
+	if (lmin != timeinfo->tm_min)	// Tux data every min
 	{
 		startWiFi ();
 
@@ -395,10 +492,12 @@ void loop()
 		}
 
 		uvIndex = mapfloat (((float)mlv * 3.3)/(8*1023.0), 0.99, 2.8, 0.0, 15.0); //Convert the voltage to a UV intensity level
-		Serial.print("mlv: "); 
-		Serial.print(mlv);
-		Serial.print(" UV: "); 
-		Serial.println(uvIndex);
+		if (persistent.debug > 0)
+		{
+			sprintf (debugBuf, "mlv: %d UV: %f", mlv, uvIndex);
+			txDebug (debugBuf);
+			Serial.println (debugBuf);
+		}
 
 		// Only update a valid value
 		float tfloat = dht.readHumidity();
@@ -406,23 +505,22 @@ void loop()
 		{
 			humidity = tfloat;
 		}
-		Serial.print("Humidity: "); 
-		Serial.println(humidity);
-
-		if (digitalRead (D3) == HIGH)
+		if (persistent.debug > 0)
 		{
-			txTux (celcius,
-				   barometer,
-				   windSpeed (windAvg),
-				   angle,
-				   txWindGust,
-				   txWindGustDir,
-				   humidity,
-				   uvIndex,
-				   rainTipper * TIP_VOL);
+			sprintf (debugBuf, "Humidity: %f", humidity);
+			txDebug (debugBuf);
+			Serial.println (debugBuf);
 		}
 
-		txWindGust = 0;
+		txTux (celcius,
+			   barometer,
+			   txWindSpeed,
+			   angle,
+			   txWindGust,
+			   txWindGustDir,
+			   humidity,
+			   uvIndex,
+			   rainTipper * TIP_VOL);
 
 		if (otaMode != 0)	// Try OTA for 1 Min
 		{
@@ -435,74 +533,23 @@ void loop()
 			otaMode = 0;
 		}
 
+		if (isnan(temp))	// Not getting valid data from I2C
+		{
+			ESP.restart();	// Restart only after chance to do OTA
+		}
+
 		stopWiFi ();
-	}
 
+		txWindGust = 0;
+		txWindSpeed = 0;
 
-	if (timeinfo->tm_min % AIR_INTERVAL == 0 && timeinfo->tm_sec == 0 && lmin != timeinfo->tm_min)
-	{
-		bmp.read (pres, temp, dummy);
-		celcius = temp;
-		barometer = pres;
-		if (isnan (celcius))
-		{
-			celcius = 0;
-			barometer = 0;
-		}
-		// Humidity done by Tux
-
-		if (digitalRead (D3) == LOW)
-		{
-			observationAir ();
-		}
-	}
-
-	if (timeinfo->tm_sec % WIND_AVG == 0 && lsec != timeinfo->tm_sec)
-	{
-		if (windGust < windHSample)
-		{
-			windGust = windHSample;
-		}
-		if (windLull > windLSample)
-		{
-			windLull = windLSample;
-		}
-		windHSample = 60000;
-		windLSample = 0;
-	}
-	else
-	{
-		if (windTime > windLSample)
-		{
-			windLSample = windTime;
-		}
-		if (windTime < windHSample && windTime != 0)
-		{
-			windHSample = windTime;
-		}
-	}
-	windAvg = (windAvg + windTime) / 2;
-
-	if (timeinfo->tm_min % SKY_INTERVAL == 0 && timeinfo->tm_sec == 0 && lmin != timeinfo->tm_min)
-	{
-
-		if (digitalRead (D3) == LOW)
-		{
-			observationSky (rainTipper * TIP_VOL, sampleRainTipper * TIP_VOL,
-							windSpeed (windLull), windSpeed (windAvg), windSpeed (windGust));
-		}
-		windGust = 0;
-		windLull = 0;
-		windHSample = 60000;
-		windLSample = 0;
-		windAvg = 0;
-		sampleRainTipper = 0;
 	}
 
 	if (timeinfo->tm_hour == 0 && timeinfo->tm_min == 0 && timeinfo->tm_sec == 0 && lsec != 0)
 	{
 		rainTipper = 0;
 		startWiFi ();
+
 		getTime ();		// Refresh clock 
 		stopWiFi ();
 	}
