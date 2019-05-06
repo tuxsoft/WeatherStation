@@ -18,15 +18,7 @@ Included is a driver for weeWX, TuxSoft3DP to install it download the zip file a
 
 *`wee_extensions --install tuxsoft3dp.zip`*
 
-I have chosen to also implement Weatherflow V40 protocol since that should provide ready to use
-software solutions, in particular I am investigating weeWx.
-
-[WeatherFlow](https://weatherflow.github.io/SmartWeather/api/udp/v40/)
-
 [weeWx](http://www.weewx.com/)
-
-[Weatherflow Driver for weeWx by Arthur Emerson](https://github.com/captain-coredump/weatherflow-udp)
-To use this driver D3 must be pulled LOW 
 
 ## Software:
 
@@ -38,9 +30,7 @@ module is a simple UDP packet monitor primarily used for debugging and to detect
 The Wemos code is compiled in with the Arduino (1.8.9) IDE, things that you might like to modify are..
 
  * Everything
- * INVERT_VANE if you end up installing your magnet backwards (see src.ino)
  * Static or DHCP IP (see src.ino)
- * The hostname for OTA (see src.ino look for ESP.getChipId )
  * WindSpeed() its not tested just trivially calculated (see src.ino)
  * The volume of your tipper, it might be different to mine after printing and sealing.
 
@@ -53,6 +43,11 @@ for a few seconds while data is being transferred. This technique is great but f
 To overcome this problem I sacrificed a few seconds of power after each packet transmission and spend a
 a few seconds looking for a UDP request to enable OTA, if found OTA is enabled for 60 seconds.
 
+Following up, the problem with the 120ma PV panel is that there is not enough current to start the buck360
+and so though technically it should be enough to sustain the system in reality this proved top be false. I
+have replaced the puny 120mA panel with a 10W panel that provides about 650mA @ 20v its more than enough and
+the price was pretty much the same.
+
 **OTA HOWTO**
 
 You need Python and netcat then open two terminal windows along with your Arduino IDE ready, In one terminal 
@@ -63,6 +58,20 @@ Next when you see a weather packet received immediately send the OTA with netcat
 second packet that confirms OTA was enabled. Now send the update via OTA using the Arduino IDE
 
 You can see this procedure [on YouTube](https://youtu.be/7__c9c8BN8w)
+
+**NEW CMD INTERFACE**
+
+In the latest release there is a very trivial KISS command interface that provides the following.
+
+ * OTA - See above for details on OTA
+ * RST - Reset the system, use after changing WiFi parameters etc. *`echo -n RST | nc -u -w0 192.168.1.40 55550`*
+ * SSID - Change the SSID to use. *`echo -n "SSID MySsidName" | nc -u -w0 192.168.1.40 55550`*
+ * HOST - Change the hostname used. *`echo -n "HOST MyHostName" | nc -u -w0 192.168.1.40 55550`*
+ * PWD - Change the WiFi password. *`echo -n "PWD MySecret" | nc -u -w0 192.168.1.40 55550`*
+ * DBG - Select debug leve, 0 = off, 1,2,3 verbosity level. *`echo -n "DBG 0" | nc -u -w0 192.168.1.40 55550`*
+
+The SSID, Hostname, and Password are currently limited to 20 charaters each. If you need more change the persistent struct.
+These commands work in exactly the same principle as OTA so you have to wait for an incomming data packet to activate them.
 
 ## Hardware:
 
@@ -125,10 +134,20 @@ You can see this procedure [on YouTube](https://youtu.be/7__c9c8BN8w)
 
 ## Note A
 
- I have not yet received the WeMos with battery, but from what I can tell there is already a 220K/100K divider
- built into the board for the analogue input. Like all things from China this must be verified before assumption.
- Update,indeed the divider was Included on the board.
+ I have received the WeMos with battery, there is already a 220K/100K divider built into the board for the analogue input.
+ Like all things from China this must be verified before assumption as there are many variants of the board..
 
+
+## Electronics
+
+ * GY-273 / HMC5883L - I2C bus
+ * BMP280 / BME280 - Connects to the I2C bus
+ * DHT22 - D5
+ * ML8511 - A0 (see warning above)
+ * Tipper - D6
+ * Anemometer - D7
+
+ The solar panel is connected to a buck360 who's output (after seting!) is connected to the 5V of the USB connector.
 
 ## 3D Printing
 
