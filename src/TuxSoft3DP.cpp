@@ -139,9 +139,9 @@ void txTux (float outTemp,
 			else if (debugBuf[0] == 'H' &&
 				debugBuf[1] == 'O' &&
 				debugBuf[2] == 'S' &&
-				debugBuf[4] == 'T')
+				debugBuf[3] == 'T')
 			{
-				saveHOSTNAME (&debugBuf[6]);
+				saveHOSTNAME (&debugBuf[5]);
 			}
 			else if (debugBuf[0] == 'P' &&
 				debugBuf[1] == 'W' &&
