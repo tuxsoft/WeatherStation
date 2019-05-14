@@ -59,7 +59,7 @@
 #include "TuxSoft3DP.h"
 #include "ssid.h"
 
-#define STATIC_IP	1
+#define STATIC_IP	0
 #define MY_IP IPAddress(192,168,1,40)
 #define MY_DNS IPAddress(192,168,1,254)
 #define MY_GW IPAddress(192,168,1,254)
@@ -93,11 +93,11 @@ struct
     char hostname[20];
 } persistent;
 
+volatile int lastP = 0;
+volatile unsigned int windTime = 0;
 int otaMode = 0;
-int lastP = 0;
 // Global weather parms sent by post to server
 int vane_offset = 0;
-unsigned int windTime = 0;
 unsigned int windDirection = 0;
 unsigned int rainTipper = 0;
 unsigned int sampleRainTipper = 0;
@@ -119,12 +119,12 @@ WiFiUDP Udp;
  windTime is always the current wind condition
  */
 
-void windTriggerH ()
+void ICACHE_RAM_ATTR windTriggerH ()
 {
-	static unsigned long summer = 0;
-	static unsigned char cntr = 0;
+	static volatile unsigned long summer = 0;
+	static volatile unsigned char cntr = 0;
 
-	int t = millis ();
+	volatile int t = millis ();
 	if (t - lastP < 10)
 	{
 		return;
@@ -230,26 +230,26 @@ void startWiFi ()
 		}
 	}
 
+
 	WiFi.forceSleepWake ();
-    delay (10);
+	WiFi.mode (WIFI_STA);
+    delay (50);
 	float dbm = 0;
-	WiFi.setOutputPower (0.0);
+	WiFi.setOutputPower (dbm);
 	WiFi.mode (WIFI_STA);
 	WiFi.begin (persistent.ssid, persistent.password);
 
 	unsigned char loopCnt = 0;
 	while (WiFi.status() != WL_CONNECTED)
 	{
-		delay(500);
-		Serial.print ("c.");
+		delay (500);
+		Serial.print (" c:"); Serial.print (WiFi.status());
 		if (++loopCnt == 10)
 		{
 			loopCnt = 0;
 			if (++dbm < 20)
 			{
 				WiFi.setOutputPower (dbm);
-				WiFi.mode (WIFI_STA);
-				WiFi.begin (persistent.ssid, persistent.password);
 			}
 			else
 			{
@@ -286,6 +286,10 @@ void setup()
 
 	Serial.begin (115200);
 	Serial.println ("TuxSoft3DP Weather Ver 1.1");
+	Serial.print ("Hostname: "); Serial.println (persistent.hostname);
+	Serial.print ("SSID: "); Serial.println (persistent.ssid);
+//	Serial.print ("Key: "); Serial.println (persistent.password);
+	Serial.print ("Debug: "); Serial.println (persistent.debug);
 	vane.begin ();
 
 	pinMode (D7, INPUT_PULLUP);
@@ -303,7 +307,8 @@ void setup()
 	ArduinoOTA.setHostname (persistent.hostname);
 
 	ArduinoOTA.onStart ([]() { detachInterrupt(digitalPinToInterrupt(D7)); Serial.println("Start");});
-	ArduinoOTA.onEnd ([]() { attachInterrupt (digitalPinToInterrupt(D7), windTriggerH, FALLING); Serial.println("\nEnd"); });
+//	ArduinoOTA.onEnd ([]() { attachInterrupt (digitalPinToInterrupt(D7), windTriggerH, FALLING); Serial.println("\nEnd"); });
+	ArduinoOTA.onEnd ([]() { Serial.println("\nEnd"); });
 
 	ArduinoOTA.onProgress ([](unsigned int progress, unsigned int total)
 	{
@@ -374,6 +379,7 @@ void loop()
 	static int ltmp = 0;
 	static int lmin = -1;
 	static int lsec = -1;
+	static int badI2C = 0;
 
 	static float pres, temp, dummy;
 
@@ -475,8 +481,6 @@ void loop()
 //	if (timeinfo->tm_min % 2 == 0 && lmin != timeinfo->tm_min)	// Tux data @ 2 min
 	if (lmin != timeinfo->tm_min)	// Tux data every min
 	{
-		startWiFi ();
-
 		bmp.read (pres, temp, dummy);
 		// Do each transfer seperate as this sensore is iffy and either or both pres and temp can be nan
 		if (!isnan(temp))
@@ -516,6 +520,8 @@ void loop()
 			Serial.println (debugBuf);
 		}
 
+		startWiFi ();
+
 		txTux (celcius,
 			   barometer,
 			   txWindSpeed,
@@ -539,7 +545,17 @@ void loop()
 
 		if (isnan(temp))	// Not getting valid data from I2C
 		{
-			ESP.restart();	// Restart only after chance to do OTA
+			if (++badI2C > 3)
+			{
+				txDebug ("I2C failed .. restarting");
+				detachInterrupt(digitalPinToInterrupt(D7));
+				ESP.wdtDisable();
+				ESP.restart();	// Restart only after chance to do OTA
+			}
+		}
+		else
+		{
+			badI2C = 0;
 		}
 
 		stopWiFi ();
