@@ -36,7 +36,7 @@ while 1:
                 print ('********************************************************> OTA ')
 
             if b'TS3DP' in data:
-#                print ("From: ", addr)
+                print ("From: ", addr)
                 print ("TuxSoft3DP Data: ", data)
                 pkt = json.loads (data)
                 print ("outTemp", pkt["outTemp"])
